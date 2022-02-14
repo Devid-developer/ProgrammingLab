@@ -5,4 +5,5 @@ for line in f:
     if elements[0] !='Date':
         value += float(elements[1])
 print(int(value))
+f.close()
 
