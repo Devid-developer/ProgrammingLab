@@ -39,5 +39,12 @@ class FitIncrementModel(IncrementModel):
         return ((somma/(len(data)-1)+self.avg_increment)/2)+prec
 
 
-my_model = FitIncrementModel([8,19,31,41,50,52,60])
-print("Predizione: {}".format(my_model.predict([50,52,60])))
+data = [8,19,31,41,50,52,60]
+my_model = FitIncrementModel(data)
+predict = my_model.predict([50,52,60])
+print("Predizione: {}".format(predict))
+
+from matplotlib import pyplot
+pyplot.plot(data + [predict], color = 'tab:red')
+pyplot.plot(data, color = 'tab:blue')
+pyplot.show()
