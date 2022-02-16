@@ -38,13 +38,20 @@ class FitIncrementModel(IncrementModel):
             prec = element
         return ((somma/(len(data)-1)+self.avg_increment)/2)+prec
 
+value = []
+f = open('shampoo_sales.csv')
+for line in f:
+    elements = line.split(',')
+    if elements[0] !='Date':
+        value.append(float(elements[1]))
+#print(value)
+f.close()
 
-data = [8,19,31,41,50,52,60]
-my_model = FitIncrementModel(data)
-predict = my_model.predict([50,52,60])
+my_model = FitIncrementModel(value)
+predict = my_model.predict(value[-3:])
 print("Predizione: {}".format(predict))
 
 from matplotlib import pyplot
-pyplot.plot(data + [predict], color = 'tab:red')
-pyplot.plot(data, color = 'tab:blue')
+pyplot.plot(value + [predict], color = 'tab:red')
+pyplot.plot(value, color = 'tab:blue')
 pyplot.show()
