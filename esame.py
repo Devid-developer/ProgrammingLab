@@ -77,9 +77,11 @@ class CSVTimeSeriesFile():
                                         #sanity check valore n passeggeri
                                         tmp_value = -1
                                         int_value_check = True
+                                        #se la conversione a intero è subito disponibile vado avanti, altrimenti verifico che non ci siano dati in più dopo il valore dei passeggeri
                                         try:
                                             clean_value = int(elem[1])
                                         except ValueError:
+                                            #se il primo elemento è un numero non nullo il dato è considerato valido sino all'ultima cifra consecutiva
                                             dirt_value = str(elem[1])
                                             dirt_value = dirt_value.rstrip()
                                             aux = ['1','2','3','4','5','6','7','8','9']
@@ -99,6 +101,8 @@ class CSVTimeSeriesFile():
                                                     else:
                                                         break
                                                 clean_value = int(clean_value)
+                                        #se ho a che fare con un intero verifico che sia positivo e non nullo
+                                        #facendo dei calcoli a spanne 333.333.333 è un numero sopra il quale è attualmente impossibile andare
                                         if int_value_check:
                                             if clean_value < 1 or clean_value > 333333:
                                                 clean_value = -1
@@ -111,9 +115,144 @@ class CSVTimeSeriesFile():
                 raise ExamException('ERROR: file non leggibile o inesistente')
         else:
             raise ExamException('ERROR: il file da leggere è None o è una lista')
+#******************************************************************************************************************************
+#FUNZIONI
 
-time_series_file = CSVTimeSeriesFile(name='data.csv')
-print(time_series_file.get_data())
+def existance_years(time_series, years):
+    year_in_file = []
+    for element in time_series:
+        #controllo gli elementi della ts e da ognuno estrapolo l'anno e lo salvo in una lista di soli anni
+        element = element[0].split('-')
+        tmp_year = element[0]
+        year_in_file.append(int(tmp_year))
+    #se entrambi gli anni sono nella lista ok    
+    if years[0] in year_in_file and years[1] in year_in_file:
+        return True
+    else:
+        return False
+
+def check_years(years):
+    #years deve essere una lista di interi, non nulla, formata da 2 anni successivi e di cui possiedo i dati
+    if years is None:
+        raise ExamException('La lista degli anni è vuota')
+    else:
+        flag = False
+        try:
+            years[0] = int(years[0])
+            years[1] = int(years[1])
+            flag = True
+        except ValueError:
+            raise ExamException('I parametri forniti non sono di tipo intero')
+        if flag:
+            #si è optato per prendere per buone anche date ordinate decrescentemente
+            years.sort()
+            succ = years[0] + 1
+            if succ != years[1]:
+                raise ExamException('Gli anni forniti non sono consecutivi')
+            elif years[0] < 1910:
+                raise ExamException('Anno non valido, i primi voli passeggeri risalgono al 1910!')
+            else:
+                return True
+    return False
+
+def check_timeseries(time_series):
+    #la timeseries è data dalla funzione get_data() e si presuppone corretta, qualora non fosse però passata essa per parametro si prova a bloccare il parametro con dei controlli stringenti
+    if time_series is not None and isinstance(time_series, list):
+        for item in time_series:
+            if type(item[0]) == str and type(item[1]) == int:
+                return True
+            else:
+                raise ExamException('Formato della timeseries non compatibile')
+    else:
+        raise ExamException('Timeseries vuota o non è una lista')
+    return False
+
+def mv_check(month_value):
+    #se nel file dei dati alcune righe mancano o sono errate/incomplete bisogna riempire i mesi dell'anno mancanti (ovv. con valore -1)
+    if len(month_value) == 12:
+        pass
+    else:
+        i = 1
+        for item in month_value:
+            #controllo che il mese i sia l'elemento i
+            if item[0] == i:
+                pass
+            else:
+                #inserisco nella lista in posizione i-1 il mese i con valore -1
+                month_value.insert(i-1,[i, -1])
+            i += 1
+    return month_value
+
+def detect_similar_monthly_variations(time_series, years):
+    month_value_1 = []
+    month_value_2 = []
+    if check_timeseries(time_series):
+        #controllo che years sia una lista, altrimenti gli altri controlli vengono bucati
+        if isinstance(years, list):
+            pass
+        else:
+            raise ExamException('il parametro years non è di tipo lista')
+        if len(years) == 2:
+            pass
+            #numero giusto di elementi
+        elif len(years) < 2:
+            raise ExamException('Per effettuare un confronto bisogna avere almeno 2 dati a disposizione')
+        else:
+            years = [yeras[0], years[1]]
+            #tentativo di accettare comunque la lista degli anni
+        if check_years(years):
+            if existance_years(time_series, years):
+                first_year = years[0]
+                succ_year = years[1]
+                for item in time_series:
+                    #passaggi per ottenere un intero con l'anno da ['2002-06',21]
+                    elem = str(item[0])
+                    elem = elem.rstrip().split('-')
+                    elem = [int(elem[0]), int(elem[1])]
+                    #inserisco il mese e il valore in una lista rappresentante l'anno corretto
+                    if elem[0] == first_year:
+                        month_value_1.append([elem[1], item[1]])
+                    if elem[0] == succ_year:
+                        month_value_2.append([elem[1], item[1]])
+                
+                month_value_1 = mv_check(month_value_1)
+                month_value_2 = mv_check(month_value_2)
+
+                #listcomprehension per estrarre solo il valore dei mesi
+                value_1 = [v[1] for v in month_value_1]
+                value_2 = [v[1] for v in month_value_2]
+                #print(value_1)
+                #print(value_2)
+                ris = []
+                #ciclo per calcolare la differenza tra i mesi
+                for item in range(11):
+                    #se ho valori -1 metto false come da specifiche
+                    if value_1[item] == -1 or value_2[item] == -1 or value_1[item+1] == -1 or value_2[item+1] == -1:
+                        ris.append(False)
+                    else:
+                        val_first = value_1[item] + value_1[item+1]
+                        val_succ = value_2[item] + value_2[item+1]
+                        if val_first < val_succ:
+                            val_first, val_succ = val_succ, val_first
+                        if val_first - val_succ <= 2:
+                            ris.append(True)
+                        else:
+                            ris.append(False)
+                return ris
+            else:
+                raise ExamException('Gli anni inseriti non sono presenti nella timeseries')
+        else:
+            raise ExamException('Anni non validi')
+    else:
+        raise ExamException('Timeseries non valida')
+
+
+#time_series_file = CSVTimeSeriesFile(name='data.csv')
+#ris = time_series_file.get_data()
+#test = ['ciao']
+#print(check_years(test))
+#print(existance_years(ris,test))
+#print(detect_similar_monthly_variations(ris,test))
                                         
 
                                                         
