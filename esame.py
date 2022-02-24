@@ -1,8 +1,7 @@
 import os
-#classe eccezioni riportata come da direttive
+
 class ExamException(Exception):
     pass
-
 
 class CSVTimeSeriesFile():
     def __init__(self, name=None):
@@ -29,7 +28,6 @@ class CSVTimeSeriesFile():
                 if os.stat(self.name).st_size == 0:
                     raise ExamException("Errore, il file e'vuoto")
                 else:
-#******************************************************************************************************************************
                     for line in file:
                         #controllo che la riga da esaminare abbia come primo elemento una data valida, inoltre che ci sia la virgola a separare date e value
                         if line != '\n' and line[0] == '1' or line[0] == '2' and ',' in line:
@@ -73,7 +71,6 @@ class CSVTimeSeriesFile():
                                         last_date[0] = tmp_date[0]
                                         last_date[1] = tmp_date[1]
                                         tmp_time_series.append(str(elem[0]))
-#******************************************************************************************************************************
                                         #sanity check valore n passeggeri
                                         tmp_value = -1
                                         int_value_check = True
@@ -110,13 +107,10 @@ class CSVTimeSeriesFile():
                                         tmp_time_series.append(tmp_value)
                                         time_series.append(tmp_time_series)
                     return time_series
-#******************************************************************************************************************************
             else:
                 raise ExamException('ERROR: file non leggibile o inesistente')
         else:
             raise ExamException('ERROR: il file da leggere è None o è una lista')
-#******************************************************************************************************************************
-#FUNZIONI
 
 def existance_years(time_series, years):
     year_in_file = []
@@ -221,8 +215,6 @@ def detect_similar_monthly_variations(time_series, years):
                 #listcomprehension per estrarre solo il valore dei mesi
                 value_1 = [v[1] for v in month_value_1]
                 value_2 = [v[1] for v in month_value_2]
-                #print(value_1)
-                #print(value_2)
                 ris = []
                 #ciclo per calcolare la differenza tra i mesi
                 for item in range(11):
@@ -230,8 +222,8 @@ def detect_similar_monthly_variations(time_series, years):
                     if value_1[item] == -1 or value_2[item] == -1 or value_1[item+1] == -1 or value_2[item+1] == -1:
                         ris.append(False)
                     else:
-                        val_first = value_1[item] + value_1[item+1]
-                        val_succ = value_2[item] + value_2[item+1]
+                        val_first = abs(value_1[item] - value_1[item+1])
+                        val_succ = abs(value_2[item] - value_2[item+1])
                         if val_first < val_succ:
                             val_first, val_succ = val_succ, val_first
                         if val_first - val_succ <= 2:
@@ -245,25 +237,3 @@ def detect_similar_monthly_variations(time_series, years):
             raise ExamException('Anni non validi')
     else:
         raise ExamException('Timeseries non valida')
-
-
-#time_series_file = CSVTimeSeriesFile(name='data.csv')
-#ris = time_series_file.get_data()
-#test = ['ciao']
-#print(check_years(test))
-#print(existance_years(ris,test))
-#print(detect_similar_monthly_variations(ris,test))
-                                        
-
-                                                        
-
-
-
-                                
-
-                                    
-                            
-                                
-
-
-
